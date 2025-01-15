@@ -64,7 +64,11 @@ func InteractionRespondRaw(s *discordgo.Session, i *discordgo.InteractionCreate,
 }
 
 type Command struct {
-	Info *CmdInfo
+	Info CmdInfo
 	Fn   func(session Session, intr CmdIntr, res CmdResFn)
 }
 type Hook = func(session Session)
+
+type Events struct {
+	on
+}

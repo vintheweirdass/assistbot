@@ -8,4 +8,8 @@ import (
 var Commands = []src.Command{
 	command.Hello,
 }
-var Hooks = []src.Hook{}
+var Hooks = []src.Hook{
+
+}
+
+var Event = 
