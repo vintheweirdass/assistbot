@@ -9,6 +9,7 @@ import (
 )
 
 func main() {
+	ok := cmd.Ok
 	dcToken, dcTokenValid := os.LookupEnv("ASSISTBOT_DISCORD_TOKEN")
 	if dcTokenValid {
 		log.Fatal("Discord token dosent found")
@@ -22,4 +23,5 @@ func main() {
 		fmt.Println("Error opening connection,", err)
 		return
 	}
+	discord.ApplicationCommand()
 }
