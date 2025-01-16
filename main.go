@@ -1,16 +1,16 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"os"
+	"os/signal"
 
 	"github.com/bwmarrin/discordgo"
 )
 
 func main() {
-	dcToken, dcTokenExist := os.LookupEnv("ASSISTBOT_DISCORD_TOKEN")
-	if dcTokenExist {
+	dcToken := os.Getenv("ASSISTBOT_DISCORD_TOKEN")
+	if dcToken == "" {
 		log.Fatal("Discord token dosent found")
 		return
 	}
@@ -19,11 +19,16 @@ func main() {
 		log.Fatal(err)
 		return
 	}
-	CommandLoader(discord)
 	HookLoader(discord)
 	err = discord.Open()
 	if err != nil {
-		fmt.Print("Error opening connection,", err)
+		log.Fatal("Error opening connection: ", err)
 		return
 	}
+	CommandLoader(discord)
+	defer discord.Close()
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, os.Interrupt)
+	log.Println("Press Ctrl+C to exit")
+	<-stop
 }

@@ -10,12 +10,12 @@ import (
 
 func triggerLoadHook(data src.Session) {
 	for _, o := range opt.Hooks.OnLoad {
-		go o(data)
+		o(data)
 	}
 }
 func triggerErrorHook(data src.ErrorHookData) {
 	for _, o := range opt.Hooks.OnError {
-		go o(data)
+		o(data)
 	}
 }
 
@@ -26,7 +26,7 @@ func HookLoader(session src.Session) {
 	if len(opt.Hooks.OnSession) > 0 {
 		for _, o := range opt.Hooks.OnSession {
 			session.AddHandler(func(s src.Session, r *discordgo.Ready) {
-				go o(s, r)
+				o(s, r)
 			})
 		}
 	}
@@ -50,11 +50,22 @@ func CommandLoader(session src.Session) {
 		}
 		cmdsObjArgs[k.Info.Name] = o
 	}
+	helpCommandLoader(session)
 	session.AddHandler(func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		var data = i.ApplicationCommandData()
 		if cmd, defined := cmdsObj[data.Name]; defined {
 			options := data.Options
 			optLen := len(options)
+			var result = func(err error) {
+				if err != nil {
+					triggerErrorHook(src.ErrorHookData{
+						CmdInfo:     cmd.Info,
+						Message:     err.Error(),
+						Interaction: i,
+						Session:     s,
+					})
+				}
+			}
 			if optLen > 0 {
 				optionMap := make(map[string]src.ACIDO, len(options))
 				for _, opt := range options {
@@ -68,29 +79,45 @@ func CommandLoader(session src.Session) {
 							Interaction: i,
 							Session:     s,
 						})
+						return
 					}
 				}
+				result(cmd.Fn(src.CmdResFnArgs{
+					Session:     s,
+					Interaction: i,
+					Result: func(e *src.CmdResData) error {
+						return src.InteractionRespondRaw(s, i, e)
+					},
+					Args:    optionMap,
+					ArgsLen: optLen,
+				}))
+				return
 			}
-			cmd.Fn(src.CmdResFnArgs{
+			result(cmd.Fn(src.CmdResFnArgs{
 				Session:     s,
 				Interaction: i,
 				Result: func(e *src.CmdResData) error {
 					return src.InteractionRespondRaw(s, i, e)
 				},
-				ArgsLen: optLen,
-			})
+				ArgsLen: 0,
+			}))
 		}
 	})
 	go func() {
 		for _, guild := range session.State.Guilds {
-			cmdsInfo := make([]*src.CmdInfo, len(opt.Commands))
-			for i := range cmdsInfo {
-				cmdsInfo[i] = &opt.Commands[i].Info
+			var cmds = make([]*src.CmdInfo, len(opt.Commands))
+			for i, cmd := range opt.Commands {
+				cmds[i] = &cmd.Info
 			}
-			_, err := session.ApplicationCommandBulkOverwrite(session.State.User.ID, guild.ID, cmdsInfo)
+			_, err := session.ApplicationCommandBulkOverwrite(session.State.User.ID, guild.ID, cmds)
 			if err != nil {
-				log.Panicf("Cannot create commands on guild %v: %v", guild.ID, err)
+				log.Fatalf("Cannot create commands on guild %v: %v", guild.ID, err)
 			}
 		}
 	}()
+}
+
+// TODO:
+func helpCommandLoader(session src.Session) {
+
 }

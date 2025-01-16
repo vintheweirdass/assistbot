@@ -62,7 +62,6 @@ type CmdResFnArgs struct {
 	Result      CmdResFn
 	Args        map[string]ACIDO
 	ArgsLen     int
-	Error       func(message string)
 }
 
 func InteractionRespondRaw(s Session, i *discordgo.InteractionCreate, data *discordgo.InteractionResponseData) error {

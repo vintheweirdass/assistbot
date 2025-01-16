@@ -6,11 +6,13 @@ import (
 
 var Hello = src.Command{
 	Info: src.CmdInfo{
-		Name: "hello",
+		Name:        "hello",
+		Description: "you wasted 3 secs to see these",
 		Options: src.CmdInfoOpt{
 			{
 				Name:        "name",
-				Description: "The name",
+				Description: "whoever the name is",
+				Type:        src.CmdInfoOptTypeEnum.String,
 				Required:    false,
 			},
 		},
@@ -18,7 +20,7 @@ var Hello = src.Command{
 	Fn: func(opt src.CmdResFnArgs) error {
 		if opt.Args["name"] != nil {
 			return opt.Result(&src.CmdResData{
-				Content: "Hello! " + opt.Args["name"].StringValue(),
+				Content: "Hello, " + opt.Args["name"].StringValue() + " !",
 			})
 		}
 		return opt.Result(&src.CmdResData{
