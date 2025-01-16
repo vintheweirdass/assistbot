@@ -24,7 +24,7 @@ but its non-blocking tho, beware
 or just exit via ctrl+c
 
 ## How to add command
-First, you need to make a new file inside `src/command` and make a new file (e.g. `hi.go`), and write it like this
+First, you need to make a new file inside `src/command` and name it (e.g. `hi.go`). After that, write it like this
 
 ```go
 package command
