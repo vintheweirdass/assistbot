@@ -10,7 +10,7 @@ run
 ```shell
 go mod download
 ```
-i recommend you to learn each commands that are used in this package, since i will progressively adding more command to it. like "how do they act?", "how they use the deps", "how do they take the args?", and more
+i recommend you to learn each commands that are used in this package, since i will progressively adding more commands to it. like "how do they act?", "how they use the deps", "how do they take the args?", and more
 
 
 ### Run the program
@@ -20,10 +20,11 @@ just do
 go run .
 ```
 but its non-blocking tho, beware
+
 or just exit via ctrl+c
 
 ## How to add command
-First, you need to make a new file inside `command`, like this
+First, you need to make a new file inside `src/command` and make a new file (e.g. `hi.go`), and write it like this
 
 ```go
 package command
@@ -34,19 +35,11 @@ import (
 )
 
 // this is your command
-var Hello = src.Command{
+var Hi = src.Command{
     // just an alias for discordgo.ApplicationCommand
 	Info: src.CmdInfo{
-		Name:        "hello",
-		Description: "you wasted 3 secs to see these",
-		Options: src.CmdInfoOpt{
-			{
-				Name:        "name",
-				Description: "whoever the name is",
-				Type:        src.CmdInfoOptTypeEnum.String,
-				Required:    false,
-			},
-		},
+		Name:        "hi",
+		Description: "Make the bot says hi!",
 	},
     // if you want to throw error, i recommend you to just returning it
     // it will automatically converted to string,
@@ -55,9 +48,20 @@ var Hello = src.Command{
         // this is the result
 		return opt.Result(&src.CmdResData{
             //here we say hi
-			Content: "Hello!",
+			Content: "Hi!",
 		})
 	},
 }
 
 ```
+After that, go to `opt` and find `bot.go`
+
+Edit the file and add one of your command to `Commands`
+```go
+...
+var Commands = []src.Command{
+	command.Hello, command.Gary, command.Whois, command.Hi, //your command here
+}
+...
+```
+Mostly you can understand it by (again and again) inspecting the code. If you are a new to Go, you can click [this link](https://go.dev/doc/tutorial/getting-started) from the official Go website, to get started
