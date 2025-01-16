@@ -4,6 +4,8 @@ Hi, this is my own bot. Its a rewrite from my closed-source Discord.js bot under
 
 The folder system is *kinda react-y*, sorry for that 😔
 ## Setup
+### Before these
+Add `ASSISTBOT_DISCORD_TOKEN` to your Environment, and set it to your Discord Bot Token (https://discord.com/developers)
 
 ### Install dependecies
 run
