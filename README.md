@@ -1,4 +1,4 @@
-:warning: WARNING: THE `/help` COMMAND STILL IN REWRITE, SO IT DOSENT WORK FOR NOW
+:warning: WARNING: THE `/help` COMMAND IS STILL IN REWRITE, SO IT DOSENT WORK FOR NOW
 # assistbot
 Hi, this is my own bot. Its a rewrite from my closed-source Discord.js bot under the same name
 
