@@ -6,15 +6,23 @@ import (
 
 var Hello = src.Command{
 	Info: src.CmdInfo{
-		Name:    "hello",
-		Options: src.CmdInfoOpt{},
+		Name: "hello",
+		Options: src.CmdInfoOpt{
+			{
+				Name:        "name",
+				Description: "The name",
+				Required:    false,
+			},
+		},
 	},
-	Fn: func(session src.Session, intr src.CmdIntr, res src.CmdResFn, opt map[string]src.Acido) {
-		var opt, len = src.GetInteractionArgs(intr)
-		if len < 0 {
-			res(&src.CmdResData{
-				Content: "hallo",
+	Fn: func(opt src.CmdResFnArgs) error {
+		if opt.Args["name"] != nil {
+			return opt.Result(&src.CmdResData{
+				Content: "Hello! " + opt.Args["name"].StringValue(),
 			})
 		}
+		return opt.Result(&src.CmdResData{
+			Content: "Hello!",
+		})
 	},
 }

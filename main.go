@@ -9,19 +9,21 @@ import (
 )
 
 func main() {
-	ok := cmd.Ok
-	dcToken, dcTokenValid := os.LookupEnv("ASSISTBOT_DISCORD_TOKEN")
-	if dcTokenValid {
+	dcToken, dcTokenExist := os.LookupEnv("ASSISTBOT_DISCORD_TOKEN")
+	if dcTokenExist {
 		log.Fatal("Discord token dosent found")
+		return
 	}
 	discord, err := discordgo.New("Bot " + dcToken)
 	if err != nil {
 		log.Fatal(err)
-	}
-	err = discord.Open()
-	if err != nil {
-		fmt.Println("Error opening connection,", err)
 		return
 	}
-	discord.ApplicationCommand()
+	CommandLoader(discord)
+	HookLoader(discord)
+	err = discord.Open()
+	if err != nil {
+		fmt.Print("Error opening connection,", err)
+		return
+	}
 }

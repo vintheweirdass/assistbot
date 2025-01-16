@@ -5,6 +5,7 @@ import "github.com/bwmarrin/discordgo"
 type CmdInfo = discordgo.ApplicationCommand
 type CmdInfoOpt = []*discordgo.ApplicationCommandOption
 type Session = *discordgo.Session
+type SessionReady = *discordgo.Ready
 type CmdIntr = *discordgo.InteractionCreate
 type CmdInfoOptType = discordgo.ApplicationCommandOptionType
 type tCmdInfoOptType struct {
@@ -35,13 +36,13 @@ var CmdInfoOptTypeEnum = tCmdInfoOptType{
 	Attachment:      11,
 }
 
-type acido = *discordgo.ApplicationCommandInteractionDataOption
+type ACIDO = *discordgo.ApplicationCommandInteractionDataOption
 
 // return value (arguments, is OG arguments length small)
-func GetInteractionArgs(i CmdIntr) (map[string]acido, int) {
+func GetInteractionArgs(i CmdIntr) (map[string]ACIDO, int) {
 	options := i.ApplicationCommandData().Options
 	optLen := len(options)
-	optionMap := make(map[string]acido, len(options))
+	optionMap := make(map[string]ACIDO, len(options))
 
 	if optLen < 1 {
 		return optionMap, 0
@@ -54,9 +55,17 @@ func GetInteractionArgs(i CmdIntr) (map[string]acido, int) {
 }
 
 type CmdResData = discordgo.InteractionResponseData
-type CmdResFn = func(data *discordgo.InteractionResponseData) error
+type CmdResFn = func(data *CmdResData) error
+type CmdResFnArgs struct {
+	Session     Session
+	Interaction CmdIntr
+	Result      CmdResFn
+	Args        map[string]ACIDO
+	ArgsLen     int
+	Error       func(message string)
+}
 
-func InteractionRespondRaw(s *discordgo.Session, i *discordgo.InteractionCreate, data *discordgo.InteractionResponseData) error {
+func InteractionRespondRaw(s Session, i *discordgo.InteractionCreate, data *discordgo.InteractionResponseData) error {
 	return s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
 		Data: data,
@@ -65,10 +74,21 @@ func InteractionRespondRaw(s *discordgo.Session, i *discordgo.InteractionCreate,
 
 type Command struct {
 	Info CmdInfo
-	Fn   func(session Session, intr CmdIntr, res CmdResFn)
+	Fn   func(args CmdResFnArgs) error
 }
-type Hook = func(session Session)
+type Commands = map[string]Command
 
-type Events struct {
-	on
+type ErrorHookData struct {
+	CmdInfo     CmdInfo
+	Message     string
+	Interaction *discordgo.InteractionCreate
+	Session     Session
+}
+type SessionHook = func(session Session, r *discordgo.Ready)
+type LoadHook = func(session Session)
+type ErrorHook = func(data ErrorHookData)
+type Hooks struct {
+	OnSession []SessionHook
+	OnError   []ErrorHook
+	OnLoad    []LoadHook
 }
