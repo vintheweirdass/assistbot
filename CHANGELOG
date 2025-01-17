@@ -1,0 +1,22 @@
+## [0.1.0] - 2025-01-17
+
+### Added
+
+- `help` command
+- Changed `botloader.go` to partially accept `InteractionMessageComponent` (so only works with `help`, not other custom commands)
+- `about` command
+
+### Changed
+- `whois` command: 
+  - make Value as `string` to make it readable from the codebase
+- `Error.go` hook:
+  - Catch empty interface on `CmdInfo` and catch error that was throwed by `help` command
+- `go.sum` & `go.mod`: 
+  - removed previous `whois` package (not `go-whois` that was currently used)
+- uhhh khakis?
+
+### Removed
+- `README`:
+   - `help` command warning (since back then, the command wasnt fully rewritten)
+## [0.0.1]
+- Initial release

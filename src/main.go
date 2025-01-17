@@ -74,6 +74,7 @@ func InteractionRespondRaw(s Session, i *discordgo.InteractionCreate, data *disc
 type Command struct {
 	Info CmdInfo
 	Fn   func(args CmdResFnArgs) error
+	// Category string
 }
 type Commands = map[string]Command
 

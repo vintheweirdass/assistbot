@@ -7,9 +7,9 @@ import (
 )
 
 // Note: `/help` is programmed directly on botloader.go
-// as `func helpCommandLoader(session src.Session)`
+// as `func helpCommandLoader`
 var Commands = []src.Command{
-	command.Hello, command.Gary, command.Whois,
+	command.Hello, command.Gary, command.Whois, command.About,
 }
 var Hooks = src.Hooks{
 	OnSession: []src.SessionHook{hooks.LoginAnnouncer},

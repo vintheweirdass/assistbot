@@ -4,6 +4,7 @@ import (
 	"assistbot/src"
 	"context"
 	"encoding/json"
+	"errors"
 	"log"
 
 	"github.com/bwmarrin/discordgo"
@@ -30,25 +31,26 @@ var Whois = src.Command{
 			},
 			{
 				Name:        "mode",
-				Description: "Switch modes between domain, IP, and others",
-				Type:        src.CmdInfoOptTypeEnum.Integer,
+				Description: "Switch modes between `domain`, `ip`, and `public suffix`",
+				Type:        src.CmdInfoOptTypeEnum.String,
 				Options: []*discordgo.ApplicationCommandOption{
 					{
-						Name:        "val-type",
-						Description: "Value type",
-						Type:        src.CmdInfoOptTypeEnum.Integer,
+						Name:         "val-type",
+						Description:  "Value type",
+						Type:         src.CmdInfoOptTypeEnum.String,
+						Autocomplete: true,
 						Choices: []*discordgo.ApplicationCommandOptionChoice{
 							{
 								Name:  "Domain",
-								Value: 1,
+								Value: "domain",
 							},
 							{
 								Name:  "IP",
-								Value: 2,
+								Value: "ip",
 							},
 							{
 								Name:  "Public Suffix",
-								Value: 3,
+								Value: "public suffix",
 							},
 						},
 					},
@@ -62,11 +64,9 @@ var Whois = src.Command{
 		// client default timeout: 5s,
 		// client with custom timeout: whois.NewClient(whois.WithTimeout(10*time.Second))
 		value := opt.Args["value"].StringValue()
-		var mode int64 = 0
+		var mode string = "domain"
 		if modeArg, exist := opt.Args["mode"]; exist {
-			mode = modeArg.IntValue()
-		} else {
-			mode = 1
+			mode = modeArg.StringValue()
 		}
 		res := func(e any) error {
 			jsonRes, err := json.MarshalIndent(e, "", "  ")
@@ -83,7 +83,7 @@ var Whois = src.Command{
 			})
 		}
 		switch mode {
-		case 1:
+		case "domain":
 			{
 				w, err := client.Query(ctx, value, "whois.iana.org")
 				if err != nil {
@@ -92,7 +92,7 @@ var Whois = src.Command{
 				w.RawText = ""
 				return res(w)
 			}
-		case 2:
+		case "ip":
 			{
 				w, err := client.QueryIP(ctx, value, "whois.iana.org")
 				if err != nil {
@@ -101,7 +101,7 @@ var Whois = src.Command{
 				w.RawText = ""
 				return res(w)
 			}
-		case 3:
+		case "public suffix":
 			{
 				w, err := client.QueryPublicSuffix(ctx, value, "whois.iana.org")
 				if err != nil {
@@ -112,9 +112,7 @@ var Whois = src.Command{
 			}
 		default:
 			{
-				return opt.Result(&src.CmdResData{
-					Content: "Can't find the 'whois' based on value",
-				})
+				return errors.New("invalid enum for `mode`")
 			}
 		}
 	},
