@@ -66,3 +66,8 @@ var Commands = []src.Command{
 ...
 ```
 Mostly you can understand it by (again and again) inspecting the code. If you are a new to Go, you can click [this link](https://go.dev/doc/tutorial/getting-started) from the official Go website, to get started
+
+---
+> Copyright @ 2024 vintheweirdass. Licensed under CC-BY 4.0 ONLY for logo
+
+![](./assistbot.png)
