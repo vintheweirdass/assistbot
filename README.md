@@ -2,6 +2,19 @@
 Hi, this is my own bot. Its a rewrite from my closed-source Discord.js bot under the same name
 
 The folder system is *kinda react-y*, sorry for that 😔
+## Map
+- Global `global`
+  - Static assets: `global/assets`
+  - Enviroment: `global/env/bot.go`
+  - Spotify client: `global/spotify.go`
+  - Logo: `global/logo.go` (linked from `global/assets/logo.png`)
+- Source folder `src`
+  - Commands: `src/command`
+  - Hooks: `src/hooks`
+  - Types: `src/main.go`
+- Root folder `.`
+  - Bot loader (including commands, `discordgo.Interaction`, and more): `botloader.go`
+  - Main entry file: `main.go`
 ## Setup
 ### Before these
 Add `ASSISTBOT_DISCORD_TOKEN` to your Environment, and set it to your Discord Bot Token (https://discord.com/developers)
@@ -24,7 +37,8 @@ but its non-blocking tho, beware
 
 or just exit via ctrl+c
 
-## How to add command
+## Examples
+### How to add command
 First, you need to make a new file inside `src/command` and name it (e.g. `hi.go`). After that, write it like this
 
 ```go
@@ -68,6 +82,6 @@ var Commands = []src.Command{
 Mostly you can understand it by (again and again) inspecting the code. If you are a new to Go, you can click [this link](https://go.dev/doc/tutorial/getting-started) from the official Go website, to get started
 
 ---
-> Copyright @ 2024 vintheweirdass. Licensed under CC-BY 4.0 ONLY for logo
+> Copyright @ 2024 vintheweirdass. Licensed under CC-BY 4.0 ONLY for logo, and the entire project (including the file source code, and other than logo) are licensed under MIT
 
-![](./assistbot.png)
+![](global/assets/logo.png)

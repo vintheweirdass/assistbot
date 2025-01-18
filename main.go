@@ -1,6 +1,7 @@
 package main
 
 import (
+	"assistbot/global/env"
 	"log"
 	"os"
 	"os/signal"
@@ -9,12 +10,12 @@ import (
 )
 
 func main() {
-	dcToken := os.Getenv("ASSISTBOT_DISCORD_TOKEN")
-	if dcToken == "" {
+	var token = env.DiscordToken
+	if token == "" {
 		log.Fatal("Discord token dosent found")
 		return
 	}
-	discord, err := discordgo.New("Bot " + dcToken)
+	discord, err := discordgo.New("Bot " + token)
 	if err != nil {
 		log.Fatal(err)
 		return

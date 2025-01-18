@@ -1,6 +1,7 @@
 package command
 
 import (
+	"assistbot/global"
 	"assistbot/src"
 
 	"github.com/bwmarrin/discordgo"
@@ -13,6 +14,9 @@ var About = src.Command{
 	},
 	Fn: func(opt src.CmdResFnArgs) error {
 		embed := &discordgo.MessageEmbed{
+			Image: &discordgo.MessageEmbedImage{
+				URL: global.LogoDataUrl,
+			},
 			Title:       "About this bot",
 			Description: "Just an assistant that helps to add the missing features on most discord bots nowadays. Inspired by Stef's bot",
 			Color:       0x00ff00, // Green color

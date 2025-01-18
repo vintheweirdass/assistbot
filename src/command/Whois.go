@@ -11,11 +11,14 @@ import (
 	"github.com/shlin168/go-whois/whois"
 )
 
-var client, clientErr = whois.NewClient()
+var client *whois.Client
 
 var WhoisHook src.LoadHook = func(session src.Session) {
-	if clientErr != nil {
-		log.Fatal(clientErr.Error())
+	log.Println("-- Loading WHOIS client --")
+	var err error
+	client, err = whois.NewClient()
+	if err != nil {
+		log.Fatal(err.Error())
 	}
 }
 var Whois = src.Command{
