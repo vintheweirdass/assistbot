@@ -6,7 +6,7 @@ The folder system is *kinda react-y*, sorry for that 😔
 - Global `global`
   - Static assets: `global/assets`
   - Enviroment: `global/env/bot.go`
-  - Spotify client: `global/spotify.go`
+  - LME client: `global/LME.go`
   - Logo: `global/logo.go` (linked from `global/assets/logo.png`)
 - Source folder `src`
   - Commands: `src/command`
