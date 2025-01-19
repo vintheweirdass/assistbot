@@ -95,6 +95,7 @@ var LMEHook src.LoadHook = func(s src.Session) {
 		log.Println(e.Error())
 	}
 }
+// masih ada bug di (LMEGetSpec)
 var LME = src.Command{
 	Info: src.CmdInfo{
 		Name:        "lme",
@@ -127,7 +128,7 @@ var LME = src.Command{
 					takeModelStart = true
 					continue
 				}
-				if s == ")" || s == "," {
+				if takeModelStart && (s == ")" || s == ",") {
 					takeModelStart = false
 					break
 				}
