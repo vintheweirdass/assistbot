@@ -7,16 +7,37 @@ import (
 	"fmt"
 	"log"
 	"slices"
-	"sync"
-	"time"
+	"strconv"
+	"strings"
 
 	"github.com/bwmarrin/discordgo"
 )
 
+const maxCmdShown = 5
+
+var cmdPages [][]src.CmdInfo = make([][]src.CmdInfo, int(len(opt.Commands)/maxCmdShown)+1)
+
+func triggerInternalLoadHook(_ src.Session) {
+	const mcs = maxCmdShown - 1
+	var idx = 0
+	var count = 0
+	for _, o := range opt.Commands {
+		if count > mcs {
+			idx++
+			count = 0
+		}
+		if cmdPages[idx] == nil {
+			cmdPages[idx] = make([]src.CmdInfo, maxCmdShown)
+		}
+		cmdPages[idx] = append(cmdPages[idx], o.Info)
+		count++
+	}
+}
 func triggerLoadHook(data src.Session) {
 	for _, o := range opt.Hooks.OnLoad {
 		o(data)
 	}
+	triggerInternalLoadHook(data)
 }
 func triggerErrorHook(data src.ErrorHookData) {
 	for _, o := range opt.Hooks.OnError {
@@ -74,10 +95,10 @@ func CommandLoader(session src.Session) {
 		cmdsObjArgs[k.Info.Name] = o
 	}
 	session.AddHandler(func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-		var data = i.ApplicationCommandData()
 		switch i.Type {
 		case discordgo.InteractionApplicationCommand:
 			{
+				var data = i.ApplicationCommandData()
 				if cmd, defined := cmdsObj[data.Name]; defined {
 					options := data.Options
 					optLen := len(options)
@@ -139,7 +160,7 @@ func CommandLoader(session src.Session) {
 				})
 			}
 		case discordgo.InteractionMessageComponent:
-			handleButtonInteraction(s, i)
+			handleButtonInteraction(s, i.Interaction)
 		}
 	})
 	go func() {
@@ -155,8 +176,6 @@ func CommandLoader(session src.Session) {
 		}
 	}()
 }
-
-var activeMessages sync.Map
 
 func helpCommandLoader(s *discordgo.Session, i *discordgo.InteractionCreate, data discordgo.ApplicationCommandInteractionData) {
 	var errorResult = func(t src.CmdInfo, err error) {
@@ -251,26 +270,14 @@ func helpCommandLoader(s *discordgo.Session, i *discordgo.InteractionCreate, dat
 	}
 
 	// Generate paginated help for all commands
-	sendHelpEmbed(s, i, 0)
+	print("s")
+	sendHelpEmbed(s, i.Interaction, 0)
 }
 
-func sendHelpEmbed(s *discordgo.Session, i *discordgo.InteractionCreate, page int) {
-	const itemsPerPage = 5
-	var commands []src.Command = opt.Commands
+func sendHelpEmbed(s *discordgo.Session, i *discordgo.Interaction, page int) {
+	messageID := i.ID
 
-	totalPages := (len(commands) + itemsPerPage - 1) / itemsPerPage
-	if page < 0 {
-		page = 0
-	} else if page >= totalPages {
-		page = totalPages - 1
-	}
-
-	startIndex := page * itemsPerPage
-	endIndex := startIndex + itemsPerPage
-	if endIndex > len(commands) {
-		endIndex = len(commands)
-	}
-
+	totalPages := len(cmdPages)
 	embed := &discordgo.MessageEmbed{
 		Title:       fmt.Sprintf("Help (Page %d/%d)", page+1, totalPages),
 		Description: "List of available commands:",
@@ -278,26 +285,24 @@ func sendHelpEmbed(s *discordgo.Session, i *discordgo.InteractionCreate, page in
 		Fields:      []*discordgo.MessageEmbedField{},
 	}
 
-	for _, cmd := range commands[startIndex:endIndex] {
+	for _, info := range cmdPages[page] {
 		embed.Fields = append(embed.Fields, &discordgo.MessageEmbedField{
-			Name:  cmd.Info.Name,
-			Value: cmd.Info.Description,
+			Name:  info.Name,
+			Value: info.Description,
 		})
 	}
 
-	messageID := fmt.Sprintf("%s_%d", i.ID, time.Now().UnixNano())
-
 	prevButton := discordgo.Button{
 		Label:    "Previous",
-		Style:    discordgo.PrimaryButton,
-		CustomID: fmt.Sprintf("prev_%s_%d", messageID, page),
+		Style:    discordgo.SecondaryButton,
+		CustomID: fmt.Sprintf("asbt--helpbtn_%s_%d", messageID, page-1),
 		Disabled: page == 0,
 	}
 
 	nextButton := discordgo.Button{
 		Label:    "Next",
 		Style:    discordgo.PrimaryButton,
-		CustomID: fmt.Sprintf("next_%s_%d", messageID, page),
+		CustomID: fmt.Sprintf("asbt--helpbtn%s_%d", messageID, page+1),
 		Disabled: page == totalPages-1,
 	}
 
@@ -305,9 +310,10 @@ func sendHelpEmbed(s *discordgo.Session, i *discordgo.InteractionCreate, page in
 		Components: []discordgo.MessageComponent{prevButton, nextButton},
 	}
 
+	// var act = activeMessages[messageID]
 	var err error
 	if i.Type == discordgo.InteractionApplicationCommand {
-		err = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+		err = s.InteractionRespond(i, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseChannelMessageWithSource,
 			Data: &discordgo.InteractionResponseData{
 				Embeds:     []*discordgo.MessageEmbed{embed},
@@ -315,69 +321,25 @@ func sendHelpEmbed(s *discordgo.Session, i *discordgo.InteractionCreate, page in
 			},
 		})
 	} else {
-		_, err = s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
-			Embeds:     &[]*discordgo.MessageEmbed{embed},
-			Components: &[]discordgo.MessageComponent{actionRow},
-		})
-	}
-
-	if err != nil {
-		log.Println("Error sending help embed:", err)
-		return
-	}
-
-	// Start a timer to expire the buttons after 30 seconds
-	go func() {
-		timer := time.NewTimer(30 * time.Second)
-		<-timer.C
-		expireButtons(s, i)
-	}()
-
-	// Store the message ID and its expiration time
-	activeMessages.Store(messageID, time.Now().Add(30*time.Second))
-}
-
-func expireButtons(s *discordgo.Session, i *discordgo.InteractionCreate) {
-	_, err := s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
-		Components: &[]discordgo.MessageComponent{},
-	})
-
-	if err != nil {
-		log.Println("Error expiring buttons:", err)
-	}
-}
-
-// Add this function to handle button interactions
-func handleButtonInteraction(s *discordgo.Session, i *discordgo.InteractionCreate) {
-	data := i.MessageComponentData()
-
-	var action, messageID string
-	var page int
-	fmt.Sscanf(data.CustomID, "%s_%s_%d", &action, &messageID, &page)
-
-	// Check if the message is still active
-	expTime, ok := activeMessages.Load(messageID)
-	if !ok || time.Now().After(expTime.(time.Time)) {
-		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-			Type: discordgo.InteractionResponseChannelMessageWithSource,
+		err = s.InteractionRespond(i, &discordgo.InteractionResponse{
+			Type: discordgo.InteractionResponseUpdateMessage,
 			Data: &discordgo.InteractionResponseData{
-				Content: "This message has expired. Please use the /help command again.",
-				Flags:   discordgo.MessageFlagsEphemeral,
+				Embeds:     []*discordgo.MessageEmbed{embed},
+				Components: []discordgo.MessageComponent{actionRow},
 			},
 		})
+	}
+
+	if err != nil {
+		log.Printf("Error sending help embed: %v", err)
+	}
+}
+
+func handleButtonInteraction(s *discordgo.Session, i *discordgo.Interaction) {
+	data := i.MessageComponentData()
+	if !strings.HasPrefix(data.CustomID, "asbt--helpbtn") {
 		return
 	}
-
-	switch action {
-	case "prev":
-		page--
-	case "next":
-		page++
-	}
-
-	// Reset the expiration timer
-	activeMessages.Store(messageID, time.Now().Add(30*time.Second))
-
-	// Update the message with new content and reset the timer
+	page, _ := strconv.Atoi(strings.Split(data.CustomID, "_")[1])
 	sendHelpEmbed(s, i, page)
 }

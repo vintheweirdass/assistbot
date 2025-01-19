@@ -27,19 +27,20 @@ const lmeSpecHref = "https://" + lmeSpecHost + "/us/en/products/"
 
 func LMEGetSpec(model string) (*global.LMESpecResult, error) {
 	spec := &global.LMESpecResult{}
-	req, err := global.NewHttpRequest(http.MethodGet, lmeSpecUrl+model, nil)
+	// req, err := global.NewHttpRequest(http.MethodGet, lmeSpecUrl+model, nil)
+	// if err != nil {
+	// 	return spec, err
+	// }
+	res, err := global.HttpClient.Get(lmeSpecUrl + model)
 	if err != nil {
-		return spec, err
-	}
-	res, err := global.HttpClient.Do(req)
-	if err != nil {
-		return spec, errors.New(lmeBscoHost + " dosent give any bytes to us")
+		log.Print(err.Error(), lmeSpecUrl+model)
+		return spec, errors.New(lmeSpecHost + " dosent give any bytes to us")
 	} else {
 		defer res.Body.Close()
 	}
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
-		return spec, errors.New("failed to get data as text from " + lmeBscoHost)
+		return spec, errors.New("failed to get data as text from " + lmeSpecHost)
 	}
 	data := &[]*global.LMESpecResult{}
 	err = json.Unmarshal(body, data)
@@ -85,7 +86,7 @@ func LMERefreshBscoDB() error {
 		dataTemp := append(*dataRes, e)
 		dataRes = &dataTemp
 	}
-	global.BscoDB = *data
+	global.BscoDB = *dataRes
 	return nil
 }
 
@@ -95,6 +96,7 @@ var LMEHook src.LoadHook = func(s src.Session) {
 		log.Println(e.Error())
 	}
 }
+
 // masih ada bug di (LMEGetSpec)
 var LME = src.Command{
 	Info: src.CmdInfo{
@@ -104,7 +106,13 @@ var LME = src.Command{
 			{
 				Name:        "name",
 				Type:        src.CmdInfoOptTypeEnum.String,
-				Description: "model name",
+				Description: "model name. may override `query` argument",
+				Required:    false,
+			},
+			{
+				Name:        "query",
+				Type:        src.CmdInfoOptTypeEnum.String,
+				Description: "find models",
 				Required:    false,
 			},
 		},
@@ -145,6 +153,7 @@ var LME = src.Command{
 			}
 			var genUrl = lmeSpecHref + strings.ToLower(spec.Id)
 			embed := &discordgo.MessageEmbed{
+				Type:  discordgo.EmbedTypeArticle,
 				Title: spec.Name,
 				Image: &discordgo.MessageEmbedImage{
 					URL: spec.Image,
@@ -157,46 +166,67 @@ var LME = src.Command{
 			return opt.Result(&src.CmdResData{
 				Embeds: []*discordgo.MessageEmbed{embed},
 				Components: []discordgo.MessageComponent{
-					discordgo.Button{
-						Label: "Original website",
-						Style: discordgo.LinkButton,
-						URL:   genUrl,
-					},
-					discordgo.Button{
-						Label: "Drivers & Software",
-						Style: discordgo.LinkButton,
-						URL:   genUrl + "/downloads",
-					},
-					discordgo.Button{
-						Label: "Parts",
-						Style: discordgo.LinkButton,
-						URL:   genUrl + "/parts",
-					},
-					discordgo.Button{
-						Label: "Userguide",
-						Style: discordgo.LinkButton,
-						URL:   genUrl + "/document-userguide",
-					},
-					discordgo.Button{
-						Label: "How To's",
-						Style: discordgo.LinkButton,
-						URL:   genUrl + "/documentation",
+					discordgo.ActionsRow{
+						Components: []discordgo.MessageComponent{
+							discordgo.Button{
+								Label: "Original website",
+								Style: discordgo.LinkButton,
+								URL:   genUrl,
+							},
+							discordgo.Button{
+								Label: "Drivers & Software",
+								Style: discordgo.LinkButton,
+								URL:   genUrl + "/downloads",
+							},
+							discordgo.Button{
+								Label: "Parts",
+								Style: discordgo.LinkButton,
+								URL:   genUrl + "/parts",
+							},
+							discordgo.Button{
+								Label: "Userguide",
+								Style: discordgo.LinkButton,
+								URL:   genUrl + "/document-userguide",
+							},
+							discordgo.Button{
+								Label: "How To's",
+								Style: discordgo.LinkButton,
+								URL:   genUrl + "/documentation",
+							},
+						},
 					},
 				},
 			})
 		}
+		var queryArg = opt.Args["query"]
 		const maxModelsShown = 8
 		dest := make([]*global.LMEBscoResult, len(global.BscoDB))
-		perm := rand.Perm(len(global.BscoDB))
-		for i, v := range perm {
-			dest[v] = global.BscoDB[i]
+		if queryArg != nil {
+			var q = strings.ToLower(queryArg.StringValue())
+			var idx = 0
+			for _, v := range global.BscoDB {
+				if !strings.Contains(strings.ToLower(v.Name), q) {
+					continue
+				}
+				dest[idx] = v
+				idx++
+			}
+		} else {
+			perm := rand.Perm(len(global.BscoDB))
+			for i, v := range perm {
+				dest[v] = global.BscoDB[i]
+			}
 		}
 		var result = ""
+		if len(dest) < 1 {
+			return errors.New("products dosent found")
+		}
 		for i, v := range dest {
 			if i > maxModelsShown {
 				break
 			}
-			result = result + v.Name + "\n"
+			var a = &v.Name
+			result += string(*a) + "\n"
 		}
 		return opt.Result(&src.CmdResData{
 			Content: "## List of models (max " + fmt.Sprintf("%d", maxModelsShown) + ") \n" + result,
