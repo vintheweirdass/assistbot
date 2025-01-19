@@ -1,4 +1,4 @@
-![](global/assets/showcase.mp4)
+![](./global/assets/showcase.mp4)
 # assistbot
 Hi, this is my own bot. Its a rewrite from my closed-source Discord.js bot under the same name
 
