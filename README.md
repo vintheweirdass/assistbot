@@ -12,6 +12,8 @@ The folder system is *kinda react-y*, sorry for that 😔
   - Commands: `src/command`
   - Hooks: `src/hooks`
   - Types: `src/main.go`
+- Option folder: `opt`
+  - Bot: `bot.go` (to add command and hooks directly to the bot)
 - Root folder `.`
   - Bot loader (including commands, `discordgo.Interaction`, and more): `botloader.go`
   - Main entry file: `main.go`
