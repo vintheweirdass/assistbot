@@ -13,7 +13,14 @@ var RefreshLME = src.Command{
 		Description: "(Owners only) refresh Lenovo Model Explorer. NOT AFFILIATED IN ANY WAY WITH LENOVO",
 	},
 	Fn: func(args src.CmdResFnArgs) error {
-		if !slices.Contains(env.Owners, args.Interaction.Message.Author.ID) {
+  var guildMember = args.Interaction.Member
+  var id = ""
+if guildMember != nil {
+  id = guildMember.ID
+} else {
+  id = args.Interaction.User.ID
+}
+		if !slices.Contains(env.Owners, id) {
 			return errors.New("you arent in the Owners object")
 		}
 		return LMERefreshBscoDB()
