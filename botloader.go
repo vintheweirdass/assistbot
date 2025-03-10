@@ -295,7 +295,7 @@ func sendHelpEmbed(s *discordgo.Session, i *discordgo.Interaction, page int) {
 	prevButton := discordgo.Button{
 		Label:    "Previous",
 		Style:    discordgo.SecondaryButton,
-		CustomID: fmt.Sprintf("asbt--helpbtn_%s_%d", messageID, page-1),
+		CustomID: fmt.Sprintf("asbt--helpbtn%s_%d", messageID, page-1),
 		Disabled: page == 0,
 	}
 
