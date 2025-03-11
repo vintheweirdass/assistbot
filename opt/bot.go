@@ -14,5 +14,5 @@ var Commands = []src.Command{
 var Hooks = src.Hooks{
 	OnSession: []src.SessionHook{hooks.LoginAnnouncer},
 	OnError:   []src.ErrorHook{hooks.Error},
-	OnLoad:    []src.LoadHook{hooks.TempWebpage, command.WhoisHook, command.LMEHook},
+	OnLoad:    []src.LoadHook{hooks.RunJSRegisterer, hooks.TempWebpage, command.WhoisHook, command.LMEHook},
 }

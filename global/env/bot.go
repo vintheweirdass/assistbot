@@ -11,3 +11,8 @@ var EnableTempWebserver = true
 var Port = os.Getenv("PORT")
 
 // var Port = "8000"
+
+var EnableRunJS = true
+
+// runjs currenly only support one channel
+var ChannelForRunJS = "1348657323844833431"
