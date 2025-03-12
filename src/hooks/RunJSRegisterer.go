@@ -130,11 +130,13 @@ var RunJSLoadOwners src.SessionHook = func(s src.Session, r src.SessionReady) {
 		return
 	}
 	log.Println("-- Loading owners for RunJS instance --")
-	for i := range env.Owners {
-		res, e := s.User(ownerNames[i])
-		if e != nil {
-			break
+	go (func() {
+		for _, name := range env.Owners {
+			res, e := s.User(name)
+			if e != nil {
+				break
+			}
+			ownerNames = append(ownerNames, res.Username)
 		}
-		ownerNames[i] = res.Username
-	}
+	})()
 }
