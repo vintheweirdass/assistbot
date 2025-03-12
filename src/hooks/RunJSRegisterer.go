@@ -3,6 +3,7 @@ package hooks
 import (
 	"assistbot/global/env"
 	"assistbot/src"
+	"assistbot/src/hooks/runjs"
 	"fmt"
 	"log"
 	"slices"
@@ -102,6 +103,7 @@ func runJSMessageCreate(s src.Session, m *discordgo.MessageCreate) {
 			output += "⚠️: require is not supported\n"
 			return goja.Undefined()
 		})
+		runjs.RegisterFunctions(runtime)
 
 		_, err := runtime.RunString(code)
 		if err != nil {
