@@ -193,13 +193,13 @@ func UpdateMessage(s *discordgo.Session, channelID, messageID, newContent string
 	return err
 }
 
-func createAlert(vm *goja.Runtime, s *discordgo.Session, m *discordgo.MessageCreate) goja.Value {
+func createAlert(vm *goja.Runtime, s *discordgo.Session, m *discordgo.MessageCreate, msg *discordgo.Message) goja.Value {
 	return vm.ToValue(func(call goja.FunctionCall) goja.Value {
 		message := call.Argument(0).String()
 
 		future, resultChan := NewFuture(vm)
 
-		err := UpdateMessage(s, m.ChannelID, m.Message.ID, fmt.Sprintf("📢 **Alert:** %s", message),
+		err := UpdateMessage(s, m.ChannelID, msg.ID, fmt.Sprintf("📢 **Alert:** %s", message),
 			[]discordgo.MessageComponent{
 				discordgo.ActionsRow{
 					Components: []discordgo.MessageComponent{
@@ -237,13 +237,13 @@ func createAlert(vm *goja.Runtime, s *discordgo.Session, m *discordgo.MessageCre
 	})
 }
 
-func createConfirm(vm *goja.Runtime, s *discordgo.Session, m *discordgo.MessageCreate) goja.Value {
+func createConfirm(vm *goja.Runtime, s *discordgo.Session, m *discordgo.MessageCreate, msg *discordgo.Message) goja.Value {
 	return vm.ToValue(func(call goja.FunctionCall) goja.Value {
 		message := call.Argument(0).String()
 
 		future, resultChan := NewFuture(vm)
 
-		err := UpdateMessage(s, m.ChannelID, m.Message.ID, fmt.Sprintf("❓ **Confirm:** %s", message),
+		err := UpdateMessage(s, m.ChannelID, msg.ID, fmt.Sprintf("❓ **Confirm:** %s", message),
 			[]discordgo.MessageComponent{
 				discordgo.ActionsRow{
 					Components: []discordgo.MessageComponent{
@@ -295,8 +295,8 @@ func createConfirm(vm *goja.Runtime, s *discordgo.Session, m *discordgo.MessageC
 	})
 }
 
-func createPrompt(vm *goja.Runtime, s *discordgo.Session, m *discordgo.MessageCreate) goja.Value {
-	messageID := m.Message.ID
+func createPrompt(vm *goja.Runtime, s *discordgo.Session, m *discordgo.MessageCreate, msg *discordgo.Message) goja.Value {
+	messageID := msg.ID
 	channelID := m.ChannelID
 	userID := m.Author.ID
 	return vm.ToValue(func(call goja.FunctionCall) goja.Value {
@@ -349,13 +349,13 @@ func createPrompt(vm *goja.Runtime, s *discordgo.Session, m *discordgo.MessageCr
 }
 
 // Register Goja functions
-func RegisterFunctions(vm *goja.Runtime, s *discordgo.Session, m *discordgo.MessageCreate, output chan string) {
+func RegisterFunctions(vm *goja.Runtime, s *discordgo.Session, m *discordgo.MessageCreate, msg *discordgo.Message, output chan string) {
 	vm.Set("async", createAsync(vm))
 	vm.Set("await", createAwait(vm))
 	vm.Set("sleep", createSleep(vm))
 	vm.Set("assert", createAssert(vm))
 	vm.Set("console", createConsole(vm, output))
-	vm.Set("alert", createAlert(vm, s, m))
-	vm.Set("confirm", createConfirm(vm, s, m))
-	vm.Set("prompt", createPrompt(vm, s, m))
+	vm.Set("alert", createAlert(vm, s, m, msg))
+	vm.Set("confirm", createConfirm(vm, s, m, msg))
+	vm.Set("prompt", createPrompt(vm, s, m, msg))
 }

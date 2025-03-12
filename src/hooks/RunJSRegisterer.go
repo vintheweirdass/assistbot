@@ -62,7 +62,7 @@ func runJSMessageCreate(s src.Session, m *discordgo.MessageCreate) {
 			"isOwner": runtime.ToValue(slices.Contains(env.Owners, m.Author.ID)),
 		}
 		runtime.Set("assistbot", assistbot)
-		runjs.RegisterFunctions(runtime, s, m, output)
+		runjs.RegisterFunctions(runtime, s, m, initialMsg, output)
 		// Collect all console output
 		var messages []string
 		done := make(chan bool)
