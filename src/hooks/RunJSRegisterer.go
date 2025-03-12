@@ -42,7 +42,7 @@ func runJSMessageCreate(s src.Session, m *discordgo.MessageCreate) {
 
 	go func() {
 		runtime := goja.New()
-		var output = make(chan string)
+		output := make(chan string, 100)
 		assistbot := map[string]any{
 			"user":              runtime.ToValue(m.Author.Username),
 			"originalCode":      runtime.ToValue(code),
@@ -63,18 +63,28 @@ func runJSMessageCreate(s src.Session, m *discordgo.MessageCreate) {
 		}
 		runtime.Set("assistbot", assistbot)
 		runjs.RegisterFunctions(runtime, s, m, output)
+		// Collect all console output
+		var messages []string
+		done := make(chan bool)
+
+		go func() {
+			for msg := range output {
+				messages = append(messages, msg)
+			}
+			done <- true
+		}()
 
 		_, err := runtime.RunString(code)
 		if err != nil {
 			output <- fmt.Sprintf("🛑 %v\n", err)
 		}
-		output <- fmt.Sprintf("🛑 %v\n", err)
-		close(output)
-		var msgBuilder strings.Builder
-		for msg := range output {
-			msgBuilder.WriteString(msg + "\n")
-		}
-		finalMessage := fmt.Sprintf("## Console output:\n```\n%s```", msgBuilder.String())
+
+		close(output) // Ensure output is closed before reading
+
+		<-done // Wait for output reader to finish
+
+		finalMessage := "## Console output:\n```\n" + strings.Join(messages, "\n") + "```"
+
 		// Edit the original message with the final result
 		_, editErr := s.ChannelMessageEdit(initialMsg.ChannelID, initialMsg.ID, finalMessage)
 		if editErr != nil {
