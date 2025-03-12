@@ -332,13 +332,7 @@ func createPrompt(vm *goja.Runtime, s *discordgo.Session, m *discordgo.MessageCr
 			UpdateMessage(s, channelID, messageID, "⌨ **Prompt responded!**. 🔄 Running your JavaScript code...",
 				[]discordgo.MessageComponent{
 					discordgo.ActionsRow{
-						Components: []discordgo.MessageComponent{
-							discordgo.Button{
-								Label:    "Cancel",
-								Style:    discordgo.DangerButton,
-								CustomID: "prompt_cancel",
-							},
-						},
+						Components: []discordgo.MessageComponent{},
 					},
 				})
 
