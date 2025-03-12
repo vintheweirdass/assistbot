@@ -6,7 +6,7 @@ var DiscordToken = os.Getenv("ASSISTBOT_DISCORD_TOKEN")
 var Owners = []string{"999863217557880842"}
 
 // useful if you want to host to koyeb or whatsoever
-var EnableTempWebserver = false
+var EnableTempWebserver = true
 
 var Port = os.Getenv("PORT")
 
