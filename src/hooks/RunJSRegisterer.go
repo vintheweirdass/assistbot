@@ -94,7 +94,7 @@ func runJSMessageCreate(s src.Session, m *discordgo.MessageCreate) {
 			"messageId": runtime.ToValue(m.ID),
 			"timestamp": runtime.ToValue(m.Timestamp.String()),
 			"owners":    runtime.ToValue(ownerNames),
-			"isOwner":   runtime.ToValue(slices.Contains(env.Owners, m.Author.Username)),
+			"isOwner":   runtime.ToValue(slices.Contains(env.Owners, m.Author.ID)),
 		}
 		runtime.Set("assistbot", assistbot)
 
