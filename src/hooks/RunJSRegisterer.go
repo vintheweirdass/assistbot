@@ -20,6 +20,7 @@ func runJSMessageCreate(s src.Session, m *discordgo.MessageCreate) {
 	if m.Author.Bot || m.ChannelID != env.ChannelForRunJS {
 		return
 	}
+
 	var code string
 	if strings.HasPrefix(m.Content, "!run ```js") {
 		code = strings.TrimPrefix(m.Content, "!run ```js")
@@ -32,7 +33,13 @@ func runJSMessageCreate(s src.Session, m *discordgo.MessageCreate) {
 	}
 	code = strings.TrimSuffix(code, "```")
 
-	resultChan := make(chan string)
+	// Send initial message to be edited later
+	initialMsg, err := s.ChannelMessageSend(m.ChannelID, "🔄 Running your JavaScript code...")
+	if err != nil {
+		log.Println("Failed to send initial message:", err)
+		return
+	}
+
 	go func() {
 		runtime := goja.New()
 		var output string
@@ -46,78 +53,33 @@ func runJSMessageCreate(s src.Session, m *discordgo.MessageCreate) {
 				output += fmt.Sprintln(args...)
 				return goja.Undefined()
 			},
-			"info": func(call goja.FunctionCall) goja.Value {
-				args := make([]any, len(call.Arguments))
-				for i, arg := range call.Arguments {
-					args[i] = arg.Export()
-				}
-				var sb strings.Builder
-				// we use emoji for infos. just ignore ur IDE highlights
-				sb.WriteString("ℹ️: ")
-				sb.WriteString(fmt.Sprintln(args...))
-				output += sb.String()
-				return goja.Undefined()
-			},
-			"warn": func(call goja.FunctionCall) goja.Value {
-				args := make([]any, len(call.Arguments))
-				for i, arg := range call.Arguments {
-					args[i] = arg.Export()
-				}
-				var sb strings.Builder
-				// we use emoji for infos. just ignore ur IDE highlights
-				sb.WriteString("⚠️: ")
-				sb.WriteString(fmt.Sprintln(args...))
-				output += sb.String()
-				return goja.Undefined()
-			},
-			"error": func(call goja.FunctionCall) goja.Value {
-				args := make([]any, len(call.Arguments))
-				for i, arg := range call.Arguments {
-					args[i] = arg.Export()
-				}
-				var sb strings.Builder
-				// we use emoji for infos. just ignore ur IDE highlights
-				sb.WriteString("🛑: ")
-				sb.WriteString(fmt.Sprintln(args...))
-				output += sb.String()
-				return goja.Undefined()
-			},
-			"debug": func(call goja.FunctionCall) goja.Value {
-				output += "⚠️: console.debug is not supported\n"
-				return goja.Undefined()
-			},
 		}
 		runtime.Set("console", console)
+
 		assistbot := map[string]any{
 			"user":      runtime.ToValue(m.Author.Username),
 			"userId":    runtime.ToValue(m.Author.ID),
 			"channelId": runtime.ToValue(m.ChannelID),
 			"messageId": runtime.ToValue(m.ID),
-			"timestamp": runtime.ToValue(m.Timestamp.String()),
 			"owners":    runtime.ToValue(ownerNames),
 			"isOwner":   runtime.ToValue(slices.Contains(env.Owners, m.Author.ID)),
 		}
 		runtime.Set("assistbot", assistbot)
-
-		runtime.Set("require", func(call goja.FunctionCall) goja.Value {
-			output += "⚠️: require is not supported\n"
-			return goja.Undefined()
-		})
 		runjs.RegisterFunctions(runtime)
 
 		_, err := runtime.RunString(code)
 		if err != nil {
-			output += fmt.Sprintf("Error: %v\n", err)
+			output += fmt.Sprintf("🛑 %v\n", err)
 		}
 
-		resultChan <- fmt.Sprintf("## Console output:\n```\n%s```", output)
-		close(resultChan)
+		finalMessage := fmt.Sprintf("## Console output:\n```\n%s```", output)
+
+		// Edit the original message with the final result
+		_, editErr := s.ChannelMessageEdit(initialMsg.ChannelID, initialMsg.ID, finalMessage)
+		if editErr != nil {
+			log.Println("Failed to edit message:", editErr)
+		}
 	}()
-
-	for result := range resultChan {
-		s.ChannelMessageSendReply(m.ChannelID, result, m.Reference())
-	}
-
 }
 
 var RunJSRegisterer src.LoadHook = func(s src.Session) {
