@@ -42,38 +42,35 @@ func runJSMessageCreate(s src.Session, m *discordgo.MessageCreate) {
 
 	go func() {
 		runtime := goja.New()
-		var output string
-
-		console := map[string]any{
-			"log": func(call goja.FunctionCall) goja.Value {
-				args := make([]any, len(call.Arguments))
-				for i, arg := range call.Arguments {
-					args[i] = arg.Export()
-				}
-				output += fmt.Sprintln(args...)
-				return goja.Undefined()
-			},
-		}
-		runtime.Set("console", console)
-
+		var output = make(chan string)
 		assistbot := map[string]any{
-			"user":      runtime.ToValue(m.Author.Username),
-			"userId":    runtime.ToValue(m.Author.ID),
-			"channelId": runtime.ToValue(m.ChannelID),
-			"messageId": runtime.ToValue(m.ID),
-			"owners":    runtime.ToValue(ownerNames),
-			"isOwner":   runtime.ToValue(slices.Contains(env.Owners, m.Author.ID)),
+			"user":              runtime.ToValue(m.Author.Username),
+			"originalCode":      runtime.ToValue(code),
+			"userId":            runtime.ToValue(m.Author.ID),
+			"channelId":         runtime.ToValue(m.ChannelID),
+			"messageId":         runtime.ToValue(m.ID),
+			"owners":            runtime.ToValue(ownerNames),
+			"everyoneMentioned": runtime.ToValue(m.MentionEveryone),
+			"rolesMentioned":    runtime.ToValue(m.MentionRoles),
+			"usersMentioned": runtime.ToValue((func() []string {
+				res := make([]string, len(m.Mentions))
+				for i, u := range m.Mentions {
+					res[i] = u.Username
+				}
+				return res
+			})()),
+			"isOwner": runtime.ToValue(slices.Contains(env.Owners, m.Author.ID)),
 		}
 		runtime.Set("assistbot", assistbot)
-		runjs.RegisterFunctions(runtime)
+		runjs.RegisterFunctions(runtime, s, m, output)
 
 		_, err := runtime.RunString(code)
+		close(output)
 		if err != nil {
-			output += fmt.Sprintf("🛑 %v\n", err)
+			output <- fmt.Sprintf("🛑 %v\n", err)
 		}
-
-		finalMessage := fmt.Sprintf("## Console output:\n```\n%s```", output)
-
+		msg := <-output
+		finalMessage := fmt.Sprintf("## Console output:\n```\n%s```", msg)
 		// Edit the original message with the final result
 		_, editErr := s.ChannelMessageEdit(initialMsg.ChannelID, initialMsg.ID, finalMessage)
 		if editErr != nil {
