@@ -68,9 +68,13 @@ func runJSMessageCreate(s src.Session, m *discordgo.MessageCreate) {
 		if err != nil {
 			output <- fmt.Sprintf("🛑 %v\n", err)
 		}
+		output <- fmt.Sprintf("🛑 %v\n", err)
 		close(output)
-		msg := <-output
-		finalMessage := fmt.Sprintf("## Console output:\n```\n%s```", msg)
+		var msgBuilder strings.Builder
+		for msg := range output {
+			msgBuilder.WriteString(msg + "\n")
+		}
+		finalMessage := fmt.Sprintf("## Console output:\n```\n%s```", msgBuilder.String())
 		// Edit the original message with the final result
 		_, editErr := s.ChannelMessageEdit(initialMsg.ChannelID, initialMsg.ID, finalMessage)
 		if editErr != nil {
