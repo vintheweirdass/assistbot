@@ -65,10 +65,10 @@ func runJSMessageCreate(s src.Session, m *discordgo.MessageCreate) {
 		runjs.RegisterFunctions(runtime, s, m, output)
 
 		_, err := runtime.RunString(code)
-		close(output)
 		if err != nil {
 			output <- fmt.Sprintf("🛑 %v\n", err)
 		}
+		close(output)
 		msg := <-output
 		finalMessage := fmt.Sprintf("## Console output:\n```\n%s```", msg)
 		// Edit the original message with the final result
