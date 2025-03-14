@@ -1,4 +1,4 @@
-package runjs
+package run
 
 import (
 	"encoding/json"
@@ -59,7 +59,7 @@ func createAsync(vm *goja.Runtime) goja.Value {
 				case result := <-resultChan:
 					return result
 				case err := <-errorChan:
-					panic(err) // Ensure error gets propagated
+					return NewPromiseError(vm, err.ToString().String()) // Ensure error gets propagated
 				}
 			})
 
@@ -137,7 +137,7 @@ func createAssert(vm *goja.Runtime) goja.Value {
 		return goja.Undefined()
 	})
 }
-func createConsole(_vm *goja.Runtime, output chan string) map[string]any {
+func createConsole(output chan string) map[string]any {
 	return map[string]any{
 		"log": func(call goja.FunctionCall) goja.Value {
 			args := make([]any, len(call.Arguments))
@@ -222,14 +222,7 @@ func createAlert(vm *goja.Runtime, s *discordgo.Session, m *discordgo.MessageCre
 			if i.Message.ID != m.Message.ID || i.MessageComponentData().CustomID != "alert_ok" {
 				return
 			}
-
-			_ = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-				Type: discordgo.InteractionResponseUpdateMessage,
-				Data: &discordgo.InteractionResponseData{
-					Content:    "📢 **Alert dismissed!**. 🔄 Running your JavaScript code...",
-					Components: []discordgo.MessageComponent{},
-				},
-			})
+			UpdateMessage(s, m.ChannelID, msg.ID, "🔄 Running your JavaScript code...", nil)
 			resultChan <- goja.Undefined()
 		})
 
@@ -280,13 +273,7 @@ func createConfirm(vm *goja.Runtime, s *discordgo.Session, m *discordgo.MessageC
 				result = false
 			}
 
-			_ = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-				Type: discordgo.InteractionResponseUpdateMessage,
-				Data: &discordgo.InteractionResponseData{
-					Content:    fmt.Sprintf("✅ You selected: **%t**. 🔄 Running your JavaScript code...", result),
-					Components: []discordgo.MessageComponent{},
-				},
-			})
+			UpdateMessage(s, m.ChannelID, msg.ID, fmt.Sprintf("✔️ You answered **%v**. 🔄 Running your JavaScript code...", result), nil)
 
 			resultChan <- vm.ToValue(result)
 		})
@@ -329,16 +316,9 @@ func createPrompt(vm *goja.Runtime, s *discordgo.Session, m *discordgo.MessageCr
 			}
 
 			// Edit message with the user's response
-			UpdateMessage(s, channelID, messageID, "⌨ **Prompt responded!**. 🔄 Running your JavaScript code...",
-				[]discordgo.MessageComponent{
-					discordgo.ActionsRow{
-						Components: []discordgo.MessageComponent{},
-					},
-				})
-
-			resultChan <- vm.ToValue(m.Content)
+			UpdateMessage(s, channelID, messageID, "⌨ **Prompt responded!**. 🔄 Running your JavaScript code...", nil)
+			resultChan <- goja.Undefined()
 		})
-
 		// Handle cancel button
 		s.AddHandlerOnce(func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 			if i.Message.ID != messageID || i.MessageComponentData().CustomID != "prompt_cancel" {
@@ -359,7 +339,7 @@ func RegisterFunctions(vm *goja.Runtime, s *discordgo.Session, m *discordgo.Mess
 	vm.Set("await", createAwait(vm))
 	vm.Set("sleep", createSleep(vm))
 	vm.Set("assert", createAssert(vm))
-	vm.Set("console", createConsole(vm, output))
+	vm.Set("console", createConsole(output))
 	vm.Set("alert", createAlert(vm, s, m, msg))
 	vm.Set("confirm", createConfirm(vm, s, m, msg))
 	vm.Set("prompt", createPrompt(vm, s, m, msg))

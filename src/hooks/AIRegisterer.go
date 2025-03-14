@@ -13,15 +13,14 @@ import (
 	"github.com/dop251/goja"
 )
 
-// for `assistbot.getOwners()`
-var ownerNames = []string{}
+// for `assistbot.getOwners(
 
-func runMessageCreate(s src.Session, m *discordgo.MessageCreate) {
+func aiMessageCreate(s src.Session, m *discordgo.MessageCreate) {
 	if m.Author.Bot || m.ChannelID != env.ChannelForRunJS {
 		return
 	}
 
-	if !strings.HasPrefix(m.Content, "```js") {
+	if strings.HasPrefix(m.Content, "```js") {
 		return
 	}
 	var code string = strings.TrimSuffix(strings.TrimPrefix(m.Content, "```js"), "```")
@@ -86,25 +85,10 @@ func runMessageCreate(s src.Session, m *discordgo.MessageCreate) {
 	}()
 }
 
-var RunJSRegisterer src.LoadHook = func(s src.Session) {
+var AIRegisterer src.LoadHook = func(s src.Session) {
 	if !env.EnableRunJS {
 		return
 	}
 	log.Println("-- Adding RunJS (Goja) instance --")
-	s.AddHandler(runMessageCreate)
-}
-var RunJSLoadOwners src.SessionHook = func(s src.Session, r src.SessionReady) {
-	if !env.EnableRunJS {
-		return
-	}
-	log.Println("-- Loading owners for RunJS instance --")
-	go (func() {
-		for _, name := range env.Owners {
-			res, e := s.User(name)
-			if e != nil {
-				break
-			}
-			ownerNames = append(ownerNames, res.Username)
-		}
-	})()
+	s.AddHandler(aiMessageCreate)
 }

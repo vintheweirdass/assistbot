@@ -1,3 +1,9 @@
+This project is discontinued since i rewrite it in rust.
+
+Bugfix is accepted, but new features would'nt be added
+
+see the new repo here https://github.com/vintheweirdass/assistbot-ng
+
 # assistbot
 Hi, this is my own bot. Its a rewrite from my closed-source Discord.js bot under the same name
 
